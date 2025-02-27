@@ -87,3 +87,6 @@ def predict_label(image_path):
 
 predicted = predict_label("data/shape.png")
 print("Predicted label:", predicted)
+
+label_map = train_generator.class_indices
+print(label_map)
