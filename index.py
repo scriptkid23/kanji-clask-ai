@@ -69,9 +69,7 @@ model.save("trained_model.keras")
 
 
 def predict_label(image_path):
-    """
-    Tải ảnh, chuyển về array, tiền xử lý và dự đoán nhãn của ảnh.
-    """
+   
     img = load_img(
         image_path, target_size=(img_height, img_width), color_mode="grayscale"
     )
