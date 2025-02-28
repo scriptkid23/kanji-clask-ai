@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ví dụ TensorFlow.js Model</title>
+    <!-- Load TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      #result {
+        margin: 20px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .error {
+        color: red;
+      }
+      .success {
+        color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>TensorFlow.js Model Demo</h1>
+    <div id="result">Loading model...</div>
+    <div id="modelInfo"></div>
+
+    <input
+      type="file"
+      id="imageInput"
+      accept="image/*"
+      style="margin-top: 20px"
+    />
+    <div id="predictionResult"></div>
+
+    <script>
+      let model; // Store the loaded model globally
+
+      async function loadModel() {
+        try {
+          console.log("Loading model...");
+          model = await tf.loadLayersModel("./tfjs_model/model.json", {
+            strict: false, // Ignore minor errors in shape
+            onProgress: (fraction) => {
+              document.getElementById(
+                "result"
+              ).innerHTML = `Loading model... ${Math.round(fraction * 100)}%`;
+            },
+          });
+
+          document.getElementById("result").innerHTML =
+            '<span class="success">Model loaded successfully!</span>';
+          console.log("Model loaded:", model);
+
+          // Display model information
+          const modelInfo = document.getElementById("modelInfo");
+          modelInfo.innerHTML = `<h3>Model Details:</h3>`;
+          console.log(model.summary());
+
+          const inputShape = model.inputs[0].shape;
+          const outputShape = model.outputs[0].shape;
+          modelInfo.innerHTML += `<p>Input Shape: [${inputShape}]</p>`;
+          modelInfo.innerHTML += `<p>Output Shape: [${outputShape}]</p>`;
+        } catch (error) {
+          console.error("Model loading error:", error);
+          document.getElementById(
+            "result"
+          ).innerHTML = `<span class="error">Error loading model: ${error.message}</span>`;
+        }
+      }
+
+      async function preprocessImage(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              canvas.width = 28;
+              canvas.height = 28;
+              const ctx = canvas.getContext("2d");
+              ctx.drawImage(img, 0, 0, 28, 28);
+
+              // Convert image to tensor
+              const tensor = tf.browser
+                .fromPixels(canvas, 1) // Convert image to grayscale (1 channel)
+                .toFloat()
+                .div(255.0)
+                .expandDims(0); // Add batch dimension
+
+              console.log("Preprocessed Tensor Shape:", tensor.shape);
+              resolve(tensor);
+            };
+            img.onerror = reject;
+            img.src = event.target.result;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function makePrediction(file) {
+        if (!model) {
+          alert("Model is not loaded yet!");
+          return;
+        }
+
+        try {
+          const tensor = await preprocessImage(file);
+          console.log("Making prediction...");
+
+          const prediction = await model.predict(tensor).array(); // Convert tensor to array
+          console.log("Raw Prediction:", prediction);
+
+          const predictedClass = prediction[0].indexOf(
+            Math.max(...prediction[0])
+          );
+
+          document.getElementById(
+            "predictionResult"
+          ).innerHTML = `<p>Predicted Class: ${predictedClass}</p>`;
+          console.log("Predicted Class:", predictedClass);
+
+          tensor.dispose(); // Cleanup to avoid memory leaks
+        } catch (error) {
+          console.error("Prediction error:", error);
+          document.getElementById(
+            "predictionResult"
+          ).innerHTML = `<p class="error">Error making prediction: ${error.message}</p>`;
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        loadModel(); // Load model when page loads
+
+        document
+          .getElementById("imageInput")
+          .addEventListener("change", async (event) => {
+            if (event.target.files.length > 0) {
+              await makePrediction(event.target.files[0]);
+            }
+          });
+      });
+    </script>
+  </body>
+</html>

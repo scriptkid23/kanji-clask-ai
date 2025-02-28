@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  tfjs_converter:
+    build: .
+    volumes:
+      - .:/workspace
+    # The command arguments here are appended to the ENTRYPOINT.
+    # For example, this converts 'model.h5' to a web model folder 'web_model' in the current directory.
+    command: ["/workspace/trained_model.h5", "/workspace/web_model"]
