@@ -1,152 +1,497 @@
 <!DOCTYPE html>
-<html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Ví dụ TensorFlow.js Model</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symbol Classification</title>
     <!-- Load TensorFlow.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-      }
-      #result {
-        margin: 20px 0;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-      }
-      .error {
-        color: red;
-      }
-      .success {
-        color: green;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>TensorFlow.js Model Demo</h1>
-    <div id="result">Loading model...</div>
-    <div id="modelInfo"></div>
+        :root {
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-color: #f9fafb;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --border-color: #e5e7eb;
+        }
 
-    <input
-      type="file"
-      id="imageInput"
-      accept="image/*"
-      style="margin-top: 20px"
-    />
-    <div id="predictionResult"></div>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .model-info {
+            background-color: #f3f4f6;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .model-status {
+            text-align: center;
+            margin-bottom: 16px;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .model-status.loading {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .model-status.success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .model-status.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .upload-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            display: block;
+            width: 100%;
+            padding: 12px 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .file-input-button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .image-preview {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            display: none;
+        }
+
+        .result-container {
+            width: 100%;
+            display: none;
+        }
+
+        .result-card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 16px;
+        }
+
+        .prediction {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .confidence {
+            text-align: center;
+            color: #4b5563;
+            margin-bottom: 16px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--primary-color);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 8px;
+        }
+
+        .error-message {
+            color: #ef4444;
+            text-align: center;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .prediction-mode {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .mode-button {
+            padding: 8px 16px;
+            border: 2px solid var(--primary-color);
+            border-radius: 4px;
+            background: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-button.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .card {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Symbol Classification</h1>
+            
+            <div id="modelStatus" class="model-status loading">
+                Loading TensorFlow.js model...
+            </div>
+
+            <div id="modelInfo" class="model-info" style="display: none;">
+                <h3>Model Information</h3>
+                <div id="modelDetails"></div>
+            </div>
+
+            <div class="prediction-mode">
+                <button id="clientMode" class="mode-button active">Client-side (TF.js)</button>
+                <button id="serverMode" class="mode-button">Server-side (Flask)</button>
+            </div>
+
+            <p style="text-align: center;">Upload an image of a mathematical symbol (delta, lambda, om, omega, phi) to classify it.</p>
+            
+            <div class="upload-container">
+                <div class="file-input-wrapper">
+                    <button class="file-input-button">Choose Image</button>
+                    <input type="file" id="imageInput" class="file-input" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="preview-container">
+                <img id="imagePreview" class="image-preview" alt="Image preview">
+                
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Processing image...</p>
+                </div>
+                
+                <div id="errorMessage" class="error-message"></div>
+                
+                <div id="resultContainer" class="result-container">
+                    <div class="result-card">
+                        <div id="prediction" class="prediction"></div>
+                        <div id="confidence" class="confidence"></div>
+                        <div class="progress-bar">
+                            <div id="confidenceBar" class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-      let model; // Store the loaded model globally
+        let model; // Store the loaded model globally
+        const classLabels = {
+            0: "delta",
+            1: "lambda",
+            2: "om",
+            3: "omega",
+            4: "phi"
+        };
+        let predictionMode = 'client'; // 'client' or 'server'
 
-      async function loadModel() {
-        try {
-          console.log("Loading model...");
-          model = await tf.loadLayersModel("./tfjs_model/model.json", {
-            strict: false, // Ignore minor errors in shape
-            onProgress: (fraction) => {
-              document.getElementById(
-                "result"
-              ).innerHTML = `Loading model... ${Math.round(fraction * 100)}%`;
-            },
-          });
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageInput = document.getElementById('imageInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('resultContainer');
+            const prediction = document.getElementById('prediction');
+            const confidence = document.getElementById('confidence');
+            const confidenceBar = document.getElementById('confidenceBar');
+            const errorMessage = document.getElementById('errorMessage');
+            const clientModeBtn = document.getElementById('clientMode');
+            const serverModeBtn = document.getElementById('serverMode');
+            const modelStatus = document.getElementById('modelStatus');
+            const modelInfo = document.getElementById('modelInfo');
 
-          document.getElementById("result").innerHTML =
-            '<span class="success">Model loaded successfully!</span>';
-          console.log("Model loaded:", model);
+            // Load TensorFlow.js model
+            loadModel();
 
-          // Display model information
-          const modelInfo = document.getElementById("modelInfo");
-          modelInfo.innerHTML = `<h3>Model Details:</h3>`;
-          console.log(model.summary());
+            // Mode selection
+            clientModeBtn.addEventListener('click', () => {
+                predictionMode = 'client';
+                clientModeBtn.classList.add('active');
+                serverModeBtn.classList.remove('active');
+            });
 
-          const inputShape = model.inputs[0].shape;
-          const outputShape = model.outputs[0].shape;
-          modelInfo.innerHTML += `<p>Input Shape: [${inputShape}]</p>`;
-          modelInfo.innerHTML += `<p>Output Shape: [${outputShape}]</p>`;
-        } catch (error) {
-          console.error("Model loading error:", error);
-          document.getElementById(
-            "result"
-          ).innerHTML = `<span class="error">Error loading model: ${error.message}</span>`;
-        }
-      }
+            serverModeBtn.addEventListener('click', () => {
+                predictionMode = 'server';
+                serverModeBtn.classList.add('active');
+                clientModeBtn.classList.remove('active');
+            });
 
-      async function preprocessImage(file) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-              const canvas = document.createElement("canvas");
-              canvas.width = 28;
-              canvas.height = 28;
-              const ctx = canvas.getContext("2d");
-              ctx.drawImage(img, 0, 0, 28, 28);
+            // Handle file selection
+            imageInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
 
-              // Convert image to tensor
-              const tensor = tf.browser
-                .fromPixels(canvas, 1) // Convert image to grayscale (1 channel)
-                .toFloat()
-                .div(255.0)
-                .expandDims(0); // Add batch dimension
+                // Display image preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    
+                    // Reset previous results
+                    resultContainer.style.display = 'none';
+                    errorMessage.style.display = 'none';
+                    
+                    // Show loading indicator
+                    loading.style.display = 'block';
+                    
+                    // Process image based on selected mode
+                    if (predictionMode === 'client') {
+                        makePrediction(file);
+                    } else {
+                        predictImageServer(file);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
 
-              console.log("Preprocessed Tensor Shape:", tensor.shape);
-              resolve(tensor);
-            };
-            img.onerror = reject;
-            img.src = event.target.result;
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      }
+            async function loadModel() {
+                try {
+                    console.log("Loading model...");
+                    modelStatus.className = 'model-status loading';
+                    modelStatus.textContent = 'Loading TensorFlow.js model...';
 
-      async function makePrediction(file) {
-        if (!model) {
-          alert("Model is not loaded yet!");
-          return;
-        }
+                    model = await tf.loadLayersModel("./tfjs_model/model.json", {
+                        strict: false,
+                        onProgress: (fraction) => {
+                            modelStatus.textContent = `Loading model... ${Math.round(fraction * 100)}%`;
+                        },
+                    });
 
-        try {
-          const tensor = await preprocessImage(file);
-          console.log("Making prediction...");
+                    modelStatus.className = 'model-status success';
+                    modelStatus.textContent = 'Model loaded successfully!';
+                    
+                    // Display model information
+                    const modelDetails = document.getElementById('modelDetails');
+                    const inputShape = model.inputs[0].shape;
+                    const outputShape = model.outputs[0].shape;
+                    
+                    modelDetails.innerHTML = `
+                        <p><strong>Input Shape:</strong> [${inputShape}]</p>
+                        <p><strong>Output Shape:</strong> [${outputShape}]</p>
+                    `;
+                    
+                    modelInfo.style.display = 'block';
+                    console.log("Model loaded:", model);
 
-          const prediction = await model.predict(tensor).array(); // Convert tensor to array
-          console.log("Raw Prediction:", prediction);
-
-          const predictedClass = prediction[0].indexOf(
-            Math.max(...prediction[0])
-          );
-
-          document.getElementById(
-            "predictionResult"
-          ).innerHTML = `<p>Predicted Class: ${predictedClass}</p>`;
-          console.log("Predicted Class:", predictedClass);
-
-          tensor.dispose(); // Cleanup to avoid memory leaks
-        } catch (error) {
-          console.error("Prediction error:", error);
-          document.getElementById(
-            "predictionResult"
-          ).innerHTML = `<p class="error">Error making prediction: ${error.message}</p>`;
-        }
-      }
-
-      document.addEventListener("DOMContentLoaded", () => {
-        loadModel(); // Load model when page loads
-
-        document
-          .getElementById("imageInput")
-          .addEventListener("change", async (event) => {
-            if (event.target.files.length > 0) {
-              await makePrediction(event.target.files[0]);
+                } catch (error) {
+                    console.error("Model loading error:", error);
+                    modelStatus.className = 'model-status error';
+                    modelStatus.textContent = `Error loading model: ${error.message}`;
+                }
             }
-          });
-      });
+
+            async function preprocessImage(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = 28;
+                            canvas.height = 28;
+                            const ctx = canvas.getContext('2d');
+                            
+                            // Draw image in grayscale
+                            ctx.fillStyle = 'white';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(img, 0, 0, 28, 28);
+                            
+                            // Convert to tensor
+                            const tensor = tf.browser
+                                .fromPixels(canvas, 1)
+                                .toFloat()
+                                .div(255.0)
+                                .expandDims(0);
+                            
+                            console.log("Preprocessed Tensor Shape:", tensor.shape);
+                            resolve(tensor);
+                        };
+                        img.onerror = reject;
+                        img.src = event.target.result;
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            async function makePrediction(file) {
+                if (!model) {
+                    alert("Model is not loaded yet!");
+                    loading.style.display = 'none';
+                    return;
+                }
+
+                try {
+                    const tensor = await preprocessImage(file);
+                    console.log("Making prediction...");
+
+                    const predictions = await model.predict(tensor).array();
+                    console.log("Raw Predictions:", predictions);
+
+                    const maxIndex = predictions[0].indexOf(Math.max(...predictions[0]));
+                    const predictedLabel = classLabels[maxIndex];
+                    const confidenceValue = predictions[0][maxIndex];
+
+                    // Display results
+                    loading.style.display = 'none';
+                    resultContainer.style.display = 'block';
+                    prediction.textContent = predictedLabel.toUpperCase();
+                    
+                    const confidencePercent = (confidenceValue * 100).toFixed(2);
+                    confidence.textContent = `Confidence: ${confidencePercent}%`;
+                    confidenceBar.style.width = `${confidencePercent}%`;
+
+                    tensor.dispose();
+                } catch (error) {
+                    console.error("Prediction error:", error);
+                    loading.style.display = 'none';
+                    errorMessage.textContent = `Error: ${error.message}`;
+                    errorMessage.style.display = 'block';
+                }
+            }
+
+            async function predictImageServer(file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    const data = await response.json();
+                    
+                    // Display results
+                    loading.style.display = 'none';
+                    resultContainer.style.display = 'block';
+                    prediction.textContent = data.prediction.toUpperCase();
+                    
+                    const confidenceValue = (data.confidence * 100).toFixed(2);
+                    confidence.textContent = `Confidence: ${confidenceValue}%`;
+                    confidenceBar.style.width = `${confidenceValue}%`;
+                } catch (error) {
+                    loading.style.display = 'none';
+                    errorMessage.textContent = `Error: ${error.message}`;
+                    errorMessage.style.display = 'block';
+                    console.error('Error:', error);
+                }
+            }
+        });
     </script>
-  </body>
+</body>
 </html>
