@@ -6,7 +6,7 @@ import tensorflowjs as tfjs
 
 img_height, img_width = 28, 28
 batch_size = 20
-num_classes = 5
+num_classes = 6
 
 train_datagen = ImageDataGenerator(
     rescale=1.0 / 255,
